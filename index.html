@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidAI Studio — AI Video Generator</title>
+    <meta name="description" content="Professional AI Video Generator">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { primary: { 400: '#818cf8', 500: '#6366f1' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --glass-bg: rgba(15,15,25,0.6);
+            --glass-border: rgba(255,255,255,0.06);
+            --bg-primary: #0a0a14;
+            --text-primary: #e2e8f0;
+            --text-secondary: rgba(226,232,240,0.6);
+            --card-bg: rgba(20,20,35,0.8);
+        }
+        .light {
+            --glass-bg: rgba(255,255,255,0.8);
+            --glass-border: rgba(0,0,0,0.08);
+            --bg-primary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: rgba(30,41,59,0.6);
+            --card-bg: rgba(255,255,255,0.9);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; background: var(--bg-primary); color: var(--text-primary); transition: background 0.3s, color 0.3s; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); }
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 12px; transition: all 0.3s ease; }
+        .glass-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); }
+        .gradient-text { background: linear-gradient(135deg,#6366f1,#a855f7,#ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .gradient-bg { background: linear-gradient(135deg,#6366f1,#8b5cf6,#d946ef); background-size: 200% 200%; animation: gradientShift 8s ease infinite; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        .page { display: none; animation: fadeIn 0.4s ease-out; }
+        .page.active { display: block; }
+        .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; padding: 12px 28px; border-radius: 12px; font-weight: 600; border: none; cursor: pointer; transition: all 0.3s; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(99,102,241,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: var(--glass-bg); backdrop-filter: blur(16px); color: var(--text-primary); padding: 12px 28px; border-radius: 12px; font-weight: 600; border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.3s; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-secondary:hover { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.1); }
+        .btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+        .input-glass { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 16px; color: var(--text-primary); font-size: 15px; width: 100%; transition: all 0.3s; outline: none; font-family: inherit; }
+        .input-glass:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .input-glass::placeholder { color: var(--text-secondary); }
+        .toast { position: fixed; top: 24px; right: 24px; z-index: 9999; padding: 16px 24px; border-radius: 12px; font-weight: 500; font-size: 14px; backdrop-filter: blur(20px); max-width: 400px; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; animation: slideIn 0.3s ease-out; }
+        .toast-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; animation: slideIn 0.3s ease-out; }
+        .toast-info { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; animation: slideIn 0.3s ease-out; }
+        .grid-bg { background-image: radial-gradient(rgba(99,102,241,0.08) 1px, transparent 1px); background-size: 40px 40px; }
+    </style>
+</head>
+<body class="dark">
+    <div id="toastContainer"></div>
+    <div id="particlesContainer" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index:0;"></div>
+
+    <div id="app" style="position:relative;z-index:1;">
+
+        <!-- ========== LANDING PAGE ========== -->
+        <div id="page-landing" class="page active">
+            <nav class="glass" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:50;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;width:95%;max-width:1100px;border-radius:50px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="gradient-bg" style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px;">V</div>
+                    <span style="font-weight:bold;font-size:20px;">VidAI<span class="gradient-text">Studio</span></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button onclick="toggleTheme()" style="padding:8px;border-radius:8px;border:none;background:transparent;cursor:pointer;color:var(--text-primary);">🌓</button>
+                    <button onclick="navigateTo('login')" class="btn-secondary btn-sm">Log In</button>
+                    <button onclick="navigateTo('signup')" class="btn-primary btn-sm">Sign Up Free</button>
+                </div>
+            </nav>
+            <section style="min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;padding:120px 16px 80px;">
+                <div class="absolute inset-0 grid-bg"></div>
+                <div style="text-align:center;max-width:800px;position:relative;z-index:10;">
+                    <h1 style="font-size:clamp(36px,7vw,70px);font-weight:900;line-height:1.1;margin-bottom:24px;">Create <span class="gradient-text">Stunning Videos</span><br>with AI</h1>
+                    <p style="font-size:18px;opacity:0.7;margin-bottom:40px;max-width:600px;margin-left:auto;margin-right:auto;">Turn your ideas into cinematic videos in seconds. Text to video, image to video, AI lip sync, voice generation, music & sound effects — all in one platform.</p>
+                    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+                        <button onclick="navigateTo('signup')" class="btn-primary" style="padding:16px 40px;font-size:18px;">Start Creating Free →</button>
+                        <button onclick="scrollToSection('features')" class="btn-secondary" style="padding:16px 40px;font-size:18px;">▶ Watch Demo</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FEATURES -->
+            <section id="features" style="padding:80px 16px;max-width:1200px;margin:0 auto;">
+                <h2 style="font-size:36px;font-weight:bold;text-align:center;margin-bottom:16px;">Everything You Need to <span class="gradient-text">Create</span></h2>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px;">
+<div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🎬</div><h3 style="font-weight:600;margin-bottom:8px;">Text to Video</h3><p style="font-size:14px;opacity:0.6;">Transform any text prompt into cinematic video with AI.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🖼️</div><h3 style="font-weight:600;margin-bottom:8px;">Image to Video</h3><p style="font-size:14px;opacity:0.6;">Animate still images into fluid motion videos.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🎤</div><h3 style="font-weight:600;margin-bottom:8px;">AI Voice & Lip Sync</h3><p style="font-size:14px;opacity:0.6;">Generate voices and perfectly synced lip movements.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🎵</div><h3 style="font-weight:600;margin-bottom:8px;">Music & Sound FX</h3><p style="font-size:14px;opacity:0.6;">AI-generated background music and sound effects.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">📝</div><h3 style="font-weight:600;margin-bottom:8px;">Auto Subtitles</h3><p style="font-size:14px;opacity:0.6;">Generate accurate subtitles in multiple languages.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">✨</div><h3 style="font-weight:600;margin-bottom:8px;">AI Upscaling</h3><p style="font-size:14px;opacity:0.6;">Upscale videos to 4K with AI enhancement.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🎭</div><h3 style="font-weight:600;margin-bottom:8px;">Face Enhancement</h3><p style="font-size:14px;opacity:0.6;">AI-powered face detail enhancement & restoration.</p></div><div class="glass-card" style="padding:24px;text-align:center;"><div class="gradient-bg" style="width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🔌</div><h3 style="font-weight:600;margin-bottom:8px;">API Ready</h3><p style="font-size:14px;opacity:0.6;">Integrate with your apps via our powerful REST API.</p></div>
+                </div>
+            </section>
+
+            <!-- PRICING -->
+            <section style="padding:80px 16px;max-width:1000px;margin:0 auto;">
+                <h2 style="font-size:36px;font-weight:bold;text-align:center;margin-bottom:16px;">Simple <span class="gradient-text">Pricing</span></h2>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;">
+                    <div class="glass-card" style="padding:32px;"><div style="font-size:14px;font-weight:600;color:#818cf8;margin-bottom:8px;">STARTER</div><div style="font-size:40px;font-weight:bold;">$0<span style="font-size:18px;opacity:0.5;">/mo</span></div><ul style="margin:24px 0;list-style:none;font-size:14px;opacity:0.7;line-height:2;"><li>✓ 3 video generations</li><li>✓ 720p quality</li><li>✓ 5s max duration</li></ul><button onclick="navigateTo('signup')" class="btn-secondary btn-sm" style="width:100%;">Get Started</button></div>
+                    <div class="glass-card" style="padding:32px;position:relative;border:1px solid rgba(99,102,241,0.3);"><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);background:#6366f1;color:white;font-size:12px;padding:4px 16px;border-radius:20px;font-weight:600;">MOST POPULAR</div><div style="font-size:14px;font-weight:600;color:#818cf8;margin-bottom:8px;">PRO</div><div style="font-size:40px;font-weight:bold;">$29<span style="font-size:18px;opacity:0.5;">/mo</span></div><ul style="margin:24px 0;list-style:none;font-size:14px;opacity:0.7;line-height:2;"><li>✓ 200 generations/mo</li><li>✓ Up to 4K quality</li><li>✓ 5 min max duration</li><li>✓ All AI features</li><li>✓ API access</li></ul><button onclick="navigateTo('signup')" class="btn-primary btn-sm" style="width:100%;">Start Pro</button></div>
+                    <div class="glass-card" style="padding:32px;"><div style="font-size:14px;font-weight:600;color:#818cf8;margin-bottom:8px;">ENTERPRISE</div><div style="font-size:40px;font-weight:bold;">$99<span style="font-size:18px;opacity:0.5;">/mo</span></div><ul style="margin:24px 0;list-style:none;font-size:14px;opacity:0.7;line-height:2;"><li>✓ Unlimited generations</li><li>✓ 4K & 8K quality</li><li>✓ Custom AI models</li></ul><button onclick="navigateTo('signup')" class="btn-secondary btn-sm" style="width:100%;">Contact Sales</button></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========== SIGNUP PAGE ========== -->
+        <div id="page-signup" class="page">
+            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+                <div class="glass-card" style="padding:32px;width:100%;max-width:420px;">
+                    <div style="text-align:center;margin-bottom:32px;">
+                        <div class="gradient-bg" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:white;font-weight:bold;">V</div>
+                        <h2 style="font-size:24px;font-weight:bold;">Create Your Account</h2>
+                        <p style="font-size:14px;opacity:0.6;margin-top:4px;">Start creating AI videos for free</p>
+                    </div>
+                    <form id="signupForm" onsubmit="return handleSignup(event)" style="display:flex;flex-direction:column;gap:16px;">
+                        <input type="text" id="signupName" class="input-glass" placeholder="Full Name" required>
+                        <input type="email" id="signupEmail" class="input-glass" placeholder="Email address" required>
+                        <input type="password" id="signupPassword" class="input-glass" placeholder="Password (8+ characters)" minlength="8" required>
+                        <input type="password" id="signupConfirm" class="input-glass" placeholder="Confirm password" required>
+                        <button type="submit" class="btn-primary" style="width:100%;">Create Account</button>
+                    </form>
+                    <p style="text-align:center;font-size:14px;margin-top:24px;opacity:0.6;">Already have an account? <a href="#" onclick="navigateTo('login')" style="color:#818cf8;font-weight:500;text-decoration:none;">Log in</a></p>
+                    <button onclick="navigateTo('landing')" style="display:block;margin:16px auto 0;background:none;border:none;font-size:14px;opacity:0.4;cursor:pointer;color:var(--text-primary);">← Back to Home</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== LOGIN PAGE ========== -->
+        <div id="page-login" class="page">
+            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+                <div class="glass-card" style="padding:32px;width:100%;max-width:420px;">
+                    <div style="text-align:center;margin-bottom:32px;">
+                        <div class="gradient-bg" style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:white;font-weight:bold;">V</div>
+                        <h2 style="font-size:24px;font-weight:bold;">Welcome Back</h2>
+                        <p style="font-size:14px;opacity:0.6;margin-top:4px;">Log in to continue creating</p>
+                    </div>
+                    <form id="loginForm" onsubmit="return handleLogin(event)" style="display:flex;flex-direction:column;gap:16px;">
+                        <input type="email" id="loginEmail" class="input-glass" placeholder="Email address" required>
+                        <input type="password" id="loginPassword" class="input-glass" placeholder="Password" required>
+                        <button type="submit" class="btn-primary" style="width:100%;">Log In</button>
+                    </form>
+                    <p style="text-align:center;font-size:14px;margin-top:24px;opacity:0.6;">Don't have an account? <a href="#" onclick="navigateTo('signup')" style="color:#818cf8;font-weight:500;text-decoration:none;">Sign up</a></p>
+                    <button onclick="navigateTo('landing')" style="display:block;margin:16px auto 0;background:none;border:none;font-size:14px;opacity:0.4;cursor:pointer;color:var(--text-primary);">← Back to Home</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== DASHBOARD PAGE ========== -->
+        <div id="page-dashboard" class="page">
+            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;">
+                <div class="glass-card" style="padding:48px;max-width:600px;">
+                    <div class="gradient-bg" style="width:80px;height:80px;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px;">🎉</div>
+                    <h2 style="font-size:28px;font-weight:bold;margin-bottom:8px;">Welcome, <span id="dashName">User</span>!</h2>
+                    <p style="opacity:0.6;margin-bottom:8px;" id="dashEmail">user@email.com</p>
+                    <p style="margin-bottom:24px;"><span style="background:rgba(99,102,241,0.15);color:#818cf8;padding:4px 16px;border-radius:20px;font-size:14px;" id="dashPlan">Free Plan</span></p>
+                    <p style="opacity:0.5;margin-bottom:32px;">Credits: <strong id="dashCredits">3</strong></p>
+                    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                        <button onclick="showToast('AI Video Generator coming soon! 🎬','info')" class="btn-primary">🎬 Generate Video</button>
+                        <button onclick="handleLogout()" class="btn-secondary">🚪 Log Out</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+// ==================== CONFIGURATION ====================
+var API_KEY = 'AQ.Ab8RN6IHGUdjRggr2BU4L3Aim6zPvQ7K-QpRDdG6N4EVWK5a5Q';
+var APP = {
+    currentUser: null,
+    currentPage: 'landing',
+    theme: 'dark',
+    users: []
+};
+
+// ==================== INIT ====================
+function init() {
+    console.log('🚀 VidAI Studio initializing...');
+    try {
+        var saved = localStorage.getItem('vidai_state');
+        if (saved) {
+            var s = JSON.parse(saved);
+            APP.currentUser = s.currentUser || null;
+            APP.theme = s.theme || 'dark';
+            APP.users = s.users || [];
+            console.log('State loaded, user:', APP.currentUser ? APP.currentUser.name : 'none');
+        }
+    } catch(e) {
+        console.log('Fresh start');
+    }
+    createParticles();
+    applyTheme();
+    if (APP.currentUser) {
+        navigateTo('dashboard');
+    }
+    console.log('✅ VidAI Studio ready!');
+}
+
+function createParticles() {
+    var container = document.getElementById('particlesContainer');
+    if (!container) return;
+    for (var i = 0; i < 30; i++) {
+        var p = document.createElement('div');
+        var size = Math.random() * 3 + 1;
+        var colors = ['#6366f1', '#8b5cf6', '#d946ef', '#a855f7'];
+        p.style.cssText = 'position:absolute;border-radius:50%;pointer-events:none;width:' + size + 'px;height:' + size + 'px;left:' + (Math.random() * 100) + '%;background:' + colors[Math.floor(Math.random() * 4)] + ';animation:particleFloat ' + (Math.random() * 10 + 10) + 's linear infinite;animation-delay:' + (Math.random() * 10) + 's;opacity:' + (Math.random() * 0.3 + 0.1) + ';';
+        container.appendChild(p);
+    }
+}
+
+// ==================== NAVIGATION ====================
+function navigateTo(page) {
+    console.log('navigateTo called with:', page);
+    APP.currentPage = page;
+
+    // Hide all pages
+    var allPages = document.querySelectorAll('.page');
+    console.log('Found', allPages.length, 'pages');
+    for (var i = 0; i < allPages.length; i++) {
+        allPages[i].classList.remove('active');
+    }
+
+    // Show target page
+    var targetId = 'page-' + page;
+    var targetEl = document.getElementById(targetId);
+    console.log('Looking for:', targetId, 'Found:', !!targetEl);
+
+    if (targetEl) {
+        targetEl.classList.add('active');
+        window.scrollTo(0, 0);
+
+        // Update dashboard if needed
+        if (page === 'dashboard') {
+            updateDashboardUI();
+        }
+    } else {
+        console.error('Page not found: ' + targetId);
+        showToast('Error: Page not found', 'error');
+    }
+}
+
+function scrollToSection(id) {
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ==================== THEME ====================
+function toggleTheme() {
+    APP.theme = APP.theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
+    saveState();
+    showToast('Theme: ' + APP.theme, 'info');
+}
+
+function applyTheme() {
+    var html = document.documentElement;
+    html.classList.remove('dark', 'light');
+    html.classList.add(APP.theme);
+}
+
+// ==================== AUTH ====================
+function handleSignup(e) {
+    e.preventDefault();
+    console.log('handleSignup called');
+
+    var nameEl = document.getElementById('signupName');
+    var emailEl = document.getElementById('signupEmail');
+    var pwEl = document.getElementById('signupPassword');
+    var cfEl = document.getElementById('signupConfirm');
+
+    if (!nameEl || !emailEl || !pwEl || !cfEl) {
+        console.error('Signup form elements not found!');
+        showToast('Form error - please refresh', 'error');
+        return false;
+    }
+
+    var name = nameEl.value.trim();
+    var email = emailEl.value.trim();
+    var pw = pwEl.value;
+    var cf = cfEl.value;
+
+    if (!name || !email || !pw) {
+        showToast('Please fill all fields', 'error');
+        return false;
+    }
+    if (pw !== cf) {
+        showToast('Passwords do not match', 'error');
+        return false;
+    }
+    if (pw.length < 8) {
+        showToast('Password must be 8+ characters', 'error');
+        return false;
+    }
+
+    // Check existing user
+    for (var i = 0; i < APP.users.length; i++) {
+        if (APP.users[i].email === email) {
+            showToast('Account already exists', 'error');
+            return false;
+        }
+    }
+
+    var user = {
+        id: 'u_' + Date.now(),
+        name: name,
+        email: email,
+        password: btoa(pw),
+        plan: 'starter',
+        credits: 3
+    };
+
+    APP.users.push(user);
+    APP.currentUser = user;
+    saveState();
+
+    console.log('User created:', user.name);
+    showToast('Account created! Welcome! 🎉', 'success');
+    navigateTo('dashboard');
+    return false;
+}
+
+function handleLogin(e) {
+    e.preventDefault();
+    console.log('handleLogin called');
+
+    var emailEl = document.getElementById('loginEmail');
+    var pwEl = document.getElementById('loginPassword');
+
+    if (!emailEl || !pwEl) {
+        console.error('Login form elements not found!');
+        showToast('Form error - please refresh', 'error');
+        return false;
+    }
+
+    var email = emailEl.value.trim();
+    var pw = pwEl.value;
+
+    if (!email || !pw) {
+        showToast('Please fill all fields', 'error');
+        return false;
+    }
+
+    console.log('Login attempt:', email);
+
+    // Find existing user
+    var user = null;
+    for (var i = 0; i < APP.users.length; i++) {
+        if (APP.users[i].email === email && APP.users[i].password === btoa(pw)) {
+            user = APP.users[i];
+            break;
+        }
+    }
+
+    if (user) {
+        console.log('Existing user found:', user.name);
+        APP.currentUser = user;
+        saveState();
+        showToast('Welcome back! 👋', 'success');
+        navigateTo('dashboard');
+    } else {
+        // Auto-create new user for demo
+        console.log('Creating new user...');
+        var newUser = {
+            id: 'u_' + Date.now(),
+            name: email.split('@')[0],
+            email: email,
+            password: btoa(pw),
+            plan: 'starter',
+            credits: 3
+        };
+        APP.users.push(newUser);
+        APP.currentUser = newUser;
+        saveState();
+        showToast('Logged in! Welcome! 🎉', 'success');
+        navigateTo('dashboard');
+    }
+
+    return false;
+}
+
+function handleLogout() {
+    APP.currentUser = null;
+    saveState();
+    showToast('Logged out', 'info');
+    navigateTo('landing');
+}
+
+// ==================== DASHBOARD ====================
+function updateDashboardUI() {
+    if (!APP.currentUser) return;
+    var nameEl = document.getElementById('dashName');
+    var emailEl = document.getElementById('dashEmail');
+    var planEl = document.getElementById('dashPlan');
+    var creditsEl = document.getElementById('dashCredits');
+
+    if (nameEl) nameEl.textContent = APP.currentUser.name;
+    if (emailEl) emailEl.textContent = APP.currentUser.email;
+    if (planEl) planEl.textContent = APP.currentUser.plan === 'pro' ? 'Pro Plan' : APP.currentUser.plan === 'enterprise' ? 'Enterprise Plan' : 'Free Plan';
+    if (creditsEl) creditsEl.textContent = APP.currentUser.credits || 3;
+}
+
+// ==================== STATE ====================
+function saveState() {
+    try {
+        localStorage.setItem('vidai_state', JSON.stringify({
+            currentUser: APP.currentUser,
+            theme: APP.theme,
+            users: APP.users
+        }));
+    } catch(e) {
+        console.error('Save failed:', e);
+    }
+}
+
+// ==================== TOAST ====================
+function showToast(msg, type) {
+    type = type || 'info';
+    var container = document.getElementById('toastContainer');
+    if (!container) return;
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 3500);
+}
+
+// ==================== PARTICLE ANIMATION ====================
+var styleSheet = document.createElement('style');
+styleSheet.textContent = '@keyframes particleFloat { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) scale(1); opacity: 0; } }';
+document.head.appendChild(styleSheet);
+
+// ==================== START ====================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM ready, calling init()');
+    init();
+});
+
+// ESC to close modals
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        console.log('ESC pressed - on page:', APP.currentPage);
+    }
+});
+
+console.log('✅ VidAI Studio script loaded');
+</script>
+</body>
+</html>
